@@ -6,28 +6,62 @@ const container = document.querySelector('.container');
 const gameSquares = Array.from(document.querySelectorAll('.gamesquare'));
 const playButton = document.querySelector('.play-button');
 
+let mode;
 let answerA, answerB, answerC;
 let progress = -1;
 let win = false;
 
+overlay.style.height = "100%";
+overlay.innerHTML = `<div class="mode-selection">
+<h1 class="answer-words">Choose which operation:</h1>
+<div class="operation-buttons"><p class="mode-select">Addition</p>
+<p class="mode-select">Multiplication</p>
+</div>
+</div>`
 
-container.addEventListener('click', (e) => {
-    console.log(e.target);
-    overlay.style.height = "100%";
-    mathProblem();
-})
+function openScreen() {
+    const buttonsArray = Array.from(document.querySelectorAll('.mode-select'));
+    
+    buttonsArray.forEach((item) => {
+        item.addEventListener('click', (e) => {
+            mode = e.target.innerText;
+            overlay.innerHTML = `<div></div>`;
+            overlay.style.height = "0";
+            setTimeout(() => {
+                overlay.innerHTML = ''
+            }, 250);
+    
+            container.addEventListener('click', (e) => {
+                console.log(e.target);
+                overlay.style.height = "100%";
+                if(mode === "Addition"){
+                    mathProblem(mode, 20);
+                }else if(mode === "Multiplication"){
+                    mathProblem(mode, 9);
+                }
+            })
+    
+        })
+    })
+};
+openScreen();
 
-
-// overlay.addEventListener('click', (e) => {
-//     console.log(e.target);
-//     overlay.innerHTML = "";
-//     overlay.style.height = "0";
-// })
 function resetBoard() {
+    overlay.style.backgroundColor = "aqua"
     progress = -1;
     gameSquares.forEach((item) => {
         item.style.backgroundColor = "purple";
     })
+    overlay.style.height = "100%";
+    overlay.innerHTML = `<div class="mode-selection">
+    <h1 class="congrats">CONGRATULATIONS!  YOU WON!</h1></br>
+    <h1 class="answer-words">Play Again?</h1>
+    <div class="operation-buttons"><p class="mode-select">Addition</p>
+    <p class="mode-select">Multiplication</p>
+    </div>
+    </div>`
+
+    openScreen();
 }
 function checkForWin() {
     let correct;
@@ -43,37 +77,47 @@ function checkForWin() {
     return correct;
 }
 
-function mathProblem(){
+function mathProblem(mode, range){
+    let modeSign;
+    mode === "Addition" ? modeSign = "+" : modeSign = "x";
     let answerArray = ["a) ", "b) ", "c) "];
     let numberArray = [];
 
     let answerIndex = Math.floor(Math.random() * 3);
 
-    let number1 = Math.ceil(Math.random() * 7);
-    let number2 = Math.ceil(Math.random() * 7);
-    let answer = number1*number2;
+    let number1 = Math.ceil(Math.random() * range);
+    let number2 = Math.ceil(Math.random() * range);
+    let answer;
+
+    if(mode === "Addition"){
+        answer = number1+number2;
+    }else if(mode === "Multiplication") {
+        answer = number1*number2;
+    }
 
     function determineAnswer(string) {
-        let randomAnswer = number1*Math.ceil(Math.random() * 7);
-        if(!numberArray.includes(randomAnswer)){
-            randomAnswer = randomAnswer;
-        }else{
-            randomAnswer += 1;
+        let randomAnswer = mode === "Multipliaction" ? number1*Math.ceil(Math.random() * range) : number1+Math.ceil(Math.random() * range) ;
+
+        for(let i = 0; i < numberArray.length; i++){
+            if(randomAnswer === numberArray[i] || randomAnswer === answer){
+                randomAnswer +=1;
+            }
         }
-
+        
         if(answerArray[answerIndex] === string){
-
-            if(string === "a) "){
+            
+            if(string === "a) " && !numberArray.includes(answer)){
                 answerA = answer;
-            }else if(string === "b) "){
+            }else if(string === "b) " && !numberArray.includes(answer)){
                 answerB = answer;
-            }else if(string === "c) "){
+            }else if(string === "c) " && !numberArray.includes(answer)){
                 answerC = answer;
             }
             numberArray.push(answer);
             return answer;
             
         }else{
+            
 
             if(string === "a) "){
                 answerA = randomAnswer;
@@ -87,6 +131,7 @@ function mathProblem(){
 
         }
     };
+
     determineAnswer("a) ");
     determineAnswer("b) ");
     determineAnswer("c) ");
@@ -95,7 +140,7 @@ function mathProblem(){
     overlay.innerHTML = `
         <div class="problem">
             <h1 id="problem-words">
-                ${number1} x ${number2} = 
+                ${number1} ${modeSign} ${number2} = 
             </h1>
         </div>
         <div class="answers">
@@ -117,13 +162,19 @@ function mathProblem(){
 
                 const answerOverlay = document.querySelector('.answer-overlay');
 
-                answerOverlay.style.backgroundColor = "lightgreen";
                 setTimeout(() => {answerOverlay.style.height = "100%"}, 0);
+                answerOverlay.style.backgroundColor = "lightgreen";
+                overlay.style.backgroundColor = "lightgreen";
                 answerOverlay.addEventListener('click', (e) => {
                     overlay.style.height = "0";
                     overlay.innerHTML = "";
+                    setTimeout(() => overlay.style.backgroundColor = "aqua", 250);
+                    if(checkForWin()){
+                        resetBoard();
+                    }
                 })
             }else{
+
                 if(progress > 0){
                     gameSquares[progress].style.backgroundColor = "purple";
                     progress--;
@@ -133,21 +184,23 @@ function mathProblem(){
                 overlay.innerHTML += `<div class="answer-overlay">
                 <h1 class="answer-words">Wrong!</h1>
                 </div>`
+
                 const answerOverlay = document.querySelector('.answer-overlay');
 
-                answerOverlay.style.backgroundColor = "red";
                 setTimeout(() => {answerOverlay.style.height = "100%"}, 0);
+                answerOverlay.style.backgroundColor = "red";
+                overlay.style.backgroundColor = "red";
                 answerOverlay.addEventListener('click', (e) => {
                     overlay.style.height = "0";
                     overlay.innerHTML = "";
+                    setTimeout(() => overlay.style.backgroundColor = "aqua", 250);
+                    if(checkForWin()){
+                        resetBoard();
+                    }
                 })
 
                 e.target.style.visibility = "hidden";
             }
-            console.log(progress);
-            if(checkForWin()){
-                resetBoard();
-            };
         })
     })
 
