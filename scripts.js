@@ -93,50 +93,76 @@ function resetBoard() {
 // Smarter answers
 // --------------------
 function buildTrickyAnswers(mode, number1, number2, range) {
-  let correct = mode === "Addition"
+  const correct = mode === "Addition"
     ? number1 + number2
     : number1 * number2;
 
-  let wrong1, wrong2;
+  const wrongs = [];
 
   if (mode === "Addition") {
-    // e.g. 10 + 12 = 22 → 20 and 24
-    wrong1 = correct - 2;
-    wrong2 = correct + 2;
+    // Start with nice close neighbors around the correct answer
+    const deltas = [-2, +2, -4, +4, -1, +1, -3, +3];
 
-    if (wrong1 < 0) wrong1 = correct + 4;
-    if (wrong2 === wrong1) wrong2 = correct + 6;
+    for (let d of deltas) {
+      const candidate = correct + d;
+      if (
+        candidate >= 0 &&
+        candidate !== correct &&
+        !wrongs.includes(candidate)
+      ) {
+        wrongs.push(candidate);
+      }
+      if (wrongs.length === 2) break;
+    }
+
+    // Fallback if we somehow still don't have 2 unique wrong answers
+    let step = 5;
+    while (wrongs.length < 2) {
+      const candidate = correct + step;
+      if (candidate !== correct && !wrongs.includes(candidate)) {
+        wrongs.push(candidate);
+      }
+      step += 5;
+    }
 
   } else {
-    // Multiplication: e.g. 3×5 = 15 → 2×5 and 4×5
-    let lowerN = number1 - 1;
-    let upperN = number1 + 1;
-
-    if (lowerN < 1) lowerN = number1 + 1;
-    if (upperN > range) upperN = number1 - 1;
-
-    wrong1 = lowerN * number2;
-    wrong2 = upperN * number2;
-
-    if (wrong1 === correct) {
-      const alt = lowerN - 1 > 0 ? lowerN - 1 : lowerN + 2;
-      wrong1 = alt * number2;
+    // Multiplication: use nearby factors (n-1, n+1, n-2, n+2, etc.)
+    const factorOffsets = [-1, +1, -2, +2, -3, +3];
+    for (let off of factorOffsets) {
+      const f = number1 + off;
+      if (f >= 1 && f <= range) {
+        const candidate = f * number2;
+        if (candidate !== correct && !wrongs.includes(candidate)) {
+          wrongs.push(candidate);
+        }
+      }
+      if (wrongs.length === 2) break;
     }
-    if (wrong2 === correct || wrong2 === wrong1) {
-      const alt2 = upperN + 1 <= range ? upperN + 1 : upperN - 2;
-      wrong2 = alt2 * number2;
+
+    // Fallback if still not 2 unique wrongs (edge cases)
+    let extraFactor = 1;
+    while (wrongs.length < 2) {
+      const candidate = extraFactor * number2;
+      if (candidate !== correct && !wrongs.includes(candidate)) {
+        wrongs.push(candidate);
+      }
+      extraFactor++;
+      if (extraFactor > range + 5) break; // hard stop safety
     }
   }
 
-  const answers = [correct, wrong1, wrong2];
+  // We now have: correct, wrongs[0], wrongs[1]
+  const answers = [correct, wrongs[0], wrongs[1]];
   answers.sort(() => Math.random() - 0.5);
 
+  // map into your existing globals
   answerA = answers[0];
   answerB = answers[1];
   answerC = answers[2];
 
   return correct;
 }
+
 
 // --------------------
 // Core game: mathProblem
